@@ -1,0 +1,5 @@
+LIBRARY   hiktrack
+EXPORTS
+   my_track_init
+   my_track_malloc
+   my_track_free

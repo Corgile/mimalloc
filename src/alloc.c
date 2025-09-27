@@ -148,7 +148,11 @@ static inline mi_decl_restrict void* mi_heap_malloc_small_zero(mi_heap_t* heap, 
 
   // get page in constant time, and allocate from it
   mi_page_t* page = _mi_heap_get_free_small_page(heap, size + MI_PADDING_SIZE);
-  void* const p = _mi_page_malloc_zero(heap, page, size + MI_PADDING_SIZE, zero);
+  void* const raw_p = _mi_page_malloc_zero(heap, page, size + MI_PADDING_SIZE, zero);
+  if (raw_p == NULL) return NULL;
+  
+  // Offset pointer by MI_TRACK_PREFIX_SIZE to leave space for event_id
+  void* const p = (uint8_t*)raw_p + MI_TRACK_PREFIX_SIZE;
   mi_track_malloc(p,size,zero);
 
   #if MI_DEBUG>3
@@ -184,7 +188,11 @@ extern inline void* _mi_heap_malloc_zero_ex(mi_heap_t* heap, size_t size, bool z
     // regular allocation
     mi_assert(heap!=NULL);
     mi_assert(heap->tld->thread_id == 0 || heap->tld->thread_id == _mi_thread_id());   // heaps are thread local
-    void* const p = _mi_malloc_generic(heap, size + MI_PADDING_SIZE, zero, huge_alignment);  // note: size can overflow but it is detected in malloc_generic
+    void* const raw_p = _mi_malloc_generic(heap, size + MI_PADDING_SIZE, zero, huge_alignment);  // note: size can overflow but it is detected in malloc_generic
+    if (raw_p == NULL) return NULL;
+    
+    // Offset pointer by MI_TRACK_PREFIX_SIZE to leave space for event_id
+    void* const p = (uint8_t*)raw_p + MI_TRACK_PREFIX_SIZE;
     mi_track_malloc(p,size,zero);
     
     #if MI_DEBUG>3

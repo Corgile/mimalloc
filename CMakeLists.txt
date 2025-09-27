@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.18)
 project(libmimalloc C CXX)
 
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 option(MI_SECURE            "Use full security mitigations (like guard pages, allocation randomization, double-free mitigation, and free-list corruption detection)" OFF)
 option(MI_DEBUG_FULL        "Use full internal heap invariant checking in DEBUG mode (expensive)" OFF)
@@ -593,20 +593,37 @@ message(STATUS "")
 # -----------------------------------------------------------------------------
 SET(TBB_DIR ${PROJECT_SOURCE_DIR}/lib/cmake/tbb)
 find_package(TBB REQUIRED)
-
+ADD_SUBDIRECTORY(hiktrack)
 # shared library
 if(MI_BUILD_SHARED)
-  add_library(mimalloc SHARED ${mi_sources}
-              src/track/hiktrack.cc
-#              src/track/track-extra.cc
-              src/track/hiktrack.hh
-              include/mimalloc/my_track.hh)
-  set_target_properties(mimalloc PROPERTIES VERSION ${mi_version} SOVERSION ${mi_version_major} OUTPUT_NAME ${mi_libname} )
-  target_compile_definitions(mimalloc PRIVATE ${mi_defines} MI_SHARED_LIB MI_SHARED_LIB_EXPORT)
+  # 1. 目录级命令其实可以删掉，下面一次性用 target_ 设置
+   ADD_COMPILE_DEFINITIONS(MI_TRACK_MYHOOK)
+
+  message(STATUS "添加宏 MI_TRACK_MYHOOK")
+
+  add_library(mimalloc SHARED ${mi_sources})
+  set_target_properties(mimalloc PROPERTIES
+      VERSION       ${mi_version}
+      SOVERSION     ${mi_version_major}
+      OUTPUT_NAME   ${mi_libname}
+  )
+
+  # 2. 所有编译定义一次写完，别重复
+  target_compile_definitions(mimalloc
+      PRIVATE
+      ${mi_defines}
+      MI_SHARED_LIB
+      MI_SHARED_LIB_EXPORT
+      MI_TRACK_MYHOOK      # ← 只要这一处即可
+  )
+
   target_compile_options(mimalloc PRIVATE ${mi_cflags} ${mi_cflags_dynamic})
   target_link_libraries(mimalloc PRIVATE ${mi_libraries})
-  target_compile_definitions(mimalloc PRIVATE MI_TRACK_MYHOOK)
-  target_link_libraries(mimalloc PRIVATE TBB::tbb TBB::tbbmalloc)
+
+  # 3. 把 hiktrack 公开出去，父项目链接 mimalloc 时就能继承头文件
+  target_link_libraries(mimalloc PUBLIC hiktrack)
+
+#  target_link_libraries(mimalloc PRIVATE TBB::tbb TBB::tbbmalloc)
   target_include_directories(mimalloc PUBLIC
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
       $<INSTALL_INTERFACE:${mi_install_incdir}>
@@ -654,10 +671,10 @@ endif()
 # static library
 if (MI_BUILD_STATIC)
   add_library(mimalloc-static STATIC ${mi_sources}
-              src/track/hiktrack.cc
+      hiktrack/track/hiktrack.cc
               #              src/track/track-extra.cc
-              src/track/hiktrack.hh
-              include/mimalloc/my_track.hh
+      hiktrack/track/hiktrack.hh
+      hiktrack/my_track.hh
   )
   set_property(TARGET mimalloc-static PROPERTY OUTPUT_NAME ${mi_libname})
   set_property(TARGET mimalloc-static PROPERTY POSITION_INDEPENDENT_CODE ON)
@@ -756,6 +773,21 @@ if (MI_BUILD_TESTS)
     endif()
     add_test(NAME test-${TEST_NAME} COMMAND mimalloc-test-${TEST_NAME})
   endforeach()
+
+  # Complex threading test for event_id tracking
+  add_executable(mimalloc-test-complex-threading test/test-complex-threading.cpp)
+  target_compile_definitions(mimalloc-test-complex-threading PRIVATE ${mi_defines})
+  target_compile_options(mimalloc-test-complex-threading PRIVATE ${mi_cflags})
+  target_include_directories(mimalloc-test-complex-threading PRIVATE include)
+  set_property(TARGET mimalloc-test-complex-threading PROPERTY CXX_STANDARD 17)
+  if(MI_BUILD_STATIC AND NOT MI_DEBUG_TSAN)
+    target_link_libraries(mimalloc-test-complex-threading PRIVATE mimalloc-static ${mi_libraries})
+  elseif(MI_BUILD_SHARED)
+    target_link_libraries(mimalloc-test-complex-threading PRIVATE mimalloc ${mi_libraries})
+  else()
+    message(STATUS "cannot build complex threading test without proper mimalloc library")
+  endif()
+  add_test(NAME test-complex-threading COMMAND mimalloc-test-complex-threading)
 
   # dynamic override test
   if(MI_BUILD_SHARED AND NOT (MI_TRACK_ASAN OR MI_DEBUG_TSAN OR MI_DEBUG_UBSAN))

@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(/E:\\projects\\mimalloc-3.0.9\\include\\mimalloc/**)",
+      "Read(/E:\\projects\\mimalloc-3.0.9\\include\\mimalloc/**)",
+      "Read(/E:\\projects\\mimalloc-3.0.9\\include\\mimalloc/**)",
+      "Read(/E:\\projects\\mimalloc-3.0.9/**)",
+      "Read(/E:\\projects\\mimalloc-3.0.9\\include\\mimalloc/**)",
+      "Read(/E:\\projects\\mimalloc-3.0.9/**)",
+      "Read(/E:\\projects\\mimalloc-3.0.9\\include\\mimalloc/**)",
+      "Read(/E:\\projects\\mimalloc-3.0.9/**)",
+      "Read(/E:\\projects\\mimalloc-3.0.9/**)",
+      "Read(/E:\\projects\\mimalloc-3.0.9/**)",
+      "Read(/E:\\projects\\mimalloc-3.0.9\\include\\mimalloc/**)",
+      "Read(/E:\\projects\\mimalloc-3.0.9\\include\\mimalloc/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -7,7 +7,7 @@ terms of the MIT license. A copy of the license can be found in the file
 #pragma once
 #ifndef MI_TRACK_H
 #define MI_TRACK_H
-#include "mimalloc/my_track.hh"
+
 /* ------------------------------------------------------------------------------------------------------
 Track memory ranges with macros for tools like Valgrind address sanitizer, or other memory checkers.
 These can be defined for tracking allocation:
@@ -91,6 +91,7 @@ defined, undefined, or not accessible at all:
 
 #elif defined(MI_TRACK_MYHOOK)
 /*  ----------  用“不冲突”的宏劫持 mimalloc 内部钩子  ----------  */
+#include "my_track.hh"
 #define MI_TRACK_ENABLED      1
 #define MI_TRACK_HEAP_DESTROY 1
 

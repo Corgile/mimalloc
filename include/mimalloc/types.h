@@ -411,17 +411,21 @@ typedef struct mi_random_cxt_s {
 } mi_random_ctx_t;
 
 
+// Event tracking prefix - always add 8 bytes before each allocation for event_id
+#define MI_TRACK_PREFIX_SIZE  8
+
 // In debug mode there is a padding structure at the end of the blocks to check for buffer overflows
 #if MI_PADDING
 typedef struct mi_padding_s {
   uint32_t canary; // encoded block value to check validity of the padding (in case of overflow)
   uint32_t delta;  // padding bytes before the block. (mi_usable_size(p) - delta == exact allocated bytes)
 } mi_padding_t;
-#define MI_PADDING_SIZE   (sizeof(mi_padding_t))
+#define MI_PADDING_SIZE   (sizeof(mi_padding_t) + MI_TRACK_PREFIX_SIZE)
 #define MI_PADDING_WSIZE  ((MI_PADDING_SIZE + MI_INTPTR_SIZE - 1) / MI_INTPTR_SIZE)
 #else
-#define MI_PADDING_SIZE   0
-#define MI_PADDING_WSIZE  0
+// Even without debug padding, we always need space for event_id tracking
+#define MI_PADDING_SIZE   MI_TRACK_PREFIX_SIZE
+#define MI_PADDING_WSIZE  ((MI_PADDING_SIZE + MI_INTPTR_SIZE - 1) / MI_INTPTR_SIZE)
 #endif
 
 #define MI_PAGES_DIRECT   (MI_SMALL_WSIZE_MAX + MI_PADDING_WSIZE + 1)

@@ -115,9 +115,12 @@ static inline void mi_block_check_unguard(mi_page_t* page, mi_block_t* block, vo
 
 // free a local pointer  (page parameter comes first for better codegen)
 static void mi_decl_noinline mi_free_generic_local(mi_page_t* page, void* p) mi_attr_noexcept {
+  // Convert user pointer back to raw pointer (subtract MI_TRACK_PREFIX_SIZE)
+  void* raw_p = (uint8_t*)p - MI_TRACK_PREFIX_SIZE;
+  
   // temporary fix: always unalign regardless of the aligned flag
-  // mi_block_t* const block = (mi_page_has_aligned(page) ? _mi_page_ptr_unalign(page, p) : (mi_block_t*)p);
-  mi_block_t* const block = _mi_page_ptr_unalign(page, p);
+  // mi_block_t* const block = (mi_page_has_aligned(page) ? _mi_page_ptr_unalign(page, raw_p) : (mi_block_t*)raw_p);
+  mi_block_t* const block = _mi_page_ptr_unalign(page, raw_p);
   mi_block_check_unguard(page, block, p);
   mi_free_block_local(page, block, true /* track stats */, true /* check for a full page */);
 }
@@ -129,7 +132,11 @@ static void mi_decl_noinline mi_free_generic_mt(mi_page_t* page, void* p) mi_att
   if (page==&_mi_page_empty) return;  // an invalid pointer may lead to using the empty page
   #endif
   mi_assert_internal(p!=NULL && page != NULL && page != &_mi_page_empty);
-  mi_block_t* const block = _mi_page_ptr_unalign(page, p); // don't check `has_aligned` flag to avoid a race (issue #865)
+  
+  // Convert user pointer back to raw pointer (subtract MI_TRACK_PREFIX_SIZE)
+  void* raw_p = (uint8_t*)p - MI_TRACK_PREFIX_SIZE;
+  
+  mi_block_t* const block = _mi_page_ptr_unalign(page, raw_p); // don't check `has_aligned` flag to avoid a race (issue #865)
   mi_block_check_unguard(page, block, p);
   mi_free_block_mt(page, block);
 }
