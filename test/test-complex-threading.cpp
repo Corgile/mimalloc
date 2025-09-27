@@ -352,7 +352,8 @@ int main() {
   std::vector<std::future<void>> futures;
 
   // 同步malloc/free线程
-  for (int i = 0; i < 3; i++) {
+  futures.reserve(3);
+for (int i = 0; i < 3; i++) {
     futures.push_back(
         std::async(std::launch::async, sync_malloc_test, i + 1, 50));
   }

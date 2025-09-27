@@ -776,6 +776,7 @@ if (MI_BUILD_TESTS)
 
   # Complex threading test for event_id tracking
   add_executable(mimalloc-test-complex-threading test/test-complex-threading.cpp)
+
   target_compile_definitions(mimalloc-test-complex-threading PRIVATE ${mi_defines})
   target_compile_options(mimalloc-test-complex-threading PRIVATE ${mi_cflags})
   target_include_directories(mimalloc-test-complex-threading PRIVATE include)
@@ -788,6 +789,11 @@ if (MI_BUILD_TESTS)
     message(STATUS "cannot build complex threading test without proper mimalloc library")
   endif()
   add_test(NAME test-complex-threading COMMAND mimalloc-test-complex-threading)
+  if(MSVC)
+    target_compile_options(mimalloc-test-complex-threading PRIVATE /Od)
+  else()
+    target_compile_options(mimalloc-test-complex-threading PRIVATE -O0)
+  endif()
 
   # dynamic override test
   if(MI_BUILD_SHARED AND NOT (MI_TRACK_ASAN OR MI_DEBUG_TSAN OR MI_DEBUG_UBSAN))
